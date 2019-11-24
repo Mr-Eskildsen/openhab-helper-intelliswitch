@@ -1,0 +1,24 @@
+
+Switch      Test_Input_Switch1          "Input [%s]"
+Switch      Test_Cond_Switch1           "Condition [%s]"
+Switch      Test_Output_Switch1         "Output [%s]"
+
+Switch      switchLightLivingroomTest1  "Light Schedule Livingroom [%s]"
+Switch      switchLightOfficeTest1      "Light Schedule Office [%s]"
+Switch      switchLightScheduleTest     "Light Schedule Test [%s]"
+
+
+Switch sensorEntranceDoor1
+
+Switch sensorBackentranceDoor1
+Switch switchLightDriveway
+Switch switchLightSmallSpot
+Contact sensorBackyardDoor
+
+
+Switch switchTestTrigger            "Test Trigger 1"
+Switch switchTestTrigger2           "Test Trigger 2"
+Switch switchTestCondition          "Test Condition 1"
+Switch switchTestCondition2         "Test Condition 2"
+Switch switchTestOutput             "Test Output 1"
+Switch switchTestOutput2            "Test Output 2"
