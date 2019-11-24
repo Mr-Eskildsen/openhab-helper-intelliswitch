@@ -1,0 +1,25 @@
+sitemap jsr223 label="jsr223" {
+	Frame {
+		Switch item=Test_Input_Switch1
+        Switch item=Test_Cond_Switch1
+        Switch item=Test_Output_Switch1
+    }
+    Frame {
+        Switch item=switchLightLivingroomTest1
+        Switch item=switchLightOfficeTest1 
+        Switch item=switchLightScheduleTest
+    }
+    Frame {
+        Switch item=sensorEntranceDoor1
+        Switch item=sensorBackentranceDoor1
+        Switch item=switchLightDriveway
+    }
+    Frame {
+        Switch item=switchTestTrigger
+        Switch item=switchTestTrigger2
+        Switch item=switchTestCondition
+        Switch item=switchTestCondition2
+        Switch item=switchTestOutput
+        Switch item=switchTestOutput2
+    }
+}
