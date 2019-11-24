@@ -1,16 +1,16 @@
 """
 :Author: `mr-eskildsen <https://github.com/mr-eskildsen>`_
-:Version: **0.1.0**
+:Version: **0.3.0**
 
-Multi Zone Home Alarm package for openHAB. This software is distributed as a
+Advanced Rule Manager package for openHAB. This software is distributed as a
 community submission to the `openhab-helper-libraries <https://github.com/openhab-scripters/openhab-helper-libraries>`_.
 
 
 About
 -----
 
-The name intelliSwitch comes from merging the two words intelligent and switch. The idea is that it offers
-advanced switches. 
+The name IntelliSwitch comes from merging the two words intelligent and switch. The idea is that it offers
+advanced switches, where multiple rules can be used to decide wheter a specific openHAB item should be ON or OFF. 
 
 
 Release Notices
@@ -21,16 +21,14 @@ If you are creating a new installation, you can ignore what follows.
 
 **PLEASE MAKE SURE THAT YOU GO THROUGH ALL STEPS BELOW WHERE IT SAYS "BREAKING CHANGE"... DON'T SKIP ANY VERSION**
 
+    **Version 0.3.0**
+        Added script as a valid condition
+		Rework on config loader
 
-    **Version 2.0.0**
-        **BREAKING CHANGE** ideAlarm new dependency: `lucid, an openHAB 2.x jsr223 Jython helper library <https://github.com/OH-Jython-Scripters/lucid>`_.
-        Review that you've setup the item groups correctly as `described in wiki <https://github.com/OH-Jython-Scripters/ideAlarm/wiki/First-Installation#define-item-groups-needed-for-persistence>`_.
-        Removed dependency of `openhab2-jython <https://github.com/OH-Jython-Scripters/openhab2-jython>`_. (All openhab2-jython functionality that's needed is now found in `lucid <https://github.com/OH-Jython-Scripters/lucid>`_)
-        Removed dependency of `mylib <https://github.com/OH-Jython-Scripters/mylib/>`_ (All mylib functionality that's needed is now found in `lucid <https://github.com/OH-Jython-Scripters/lucid>`_)
-
-    **Version 1.0.0**
-        Added version info string to logging.
-        Added ideAlarm function `__version__()`
+	**Version 0.2.0**
+        General clean up.
+		Fixed problem with lat / long being swapped in call to Astro 
+		
 
     **Version 0.1.0**
         Initial version.
@@ -62,19 +60,9 @@ from configuration import intelliswitch_configuration as configuration
 
 from personal.intelliswitch.logging import getLogger, LogException
 
-#try:
-#	#from personal.intelliswitch.base import BaseCore
-#	from personal.intelliswitch.location import SystemLocation
-#	from personal.intelliswitch.manager import RuleManager
-#except:
-#	LogException()
 
+"""
+	Version of Intelliswitch
+"""
+__Intelliswitch_Version__ = '0.3.0'
 
-def getDateToday():
-	return DateTime().withTimeAtStartOfDay()
-
-
-def ParseTimeStringToDate(date, timeString):
-	return DateTime.parse(
-			("{}-{}-{} {}").format(date.getYear(), date.getMonthOfYear(), date.getDayOfMonth(), timeString),
-			DateTimeFormat.forPattern("yyyy-MM-dd HH:mm"))

@@ -9,16 +9,18 @@ try:
 	from personal.intelliswitch.astro import AstroSunInfo
 	from personal.intelliswitch.base import BaseCore
 	from personal.intelliswitch.criteria import BaseCriteria, BinaryCriteria
+	from personal.intelliswitch.oh import isItemBinaryType, isItemOnOffType, isItemOpenClosedType, getOpenHABItem
 	from personal.intelliswitch.service import RequiredServiceEnum
 	
+	from personal.intelliswitch.utils import getClassName, getDateToday, ParseTimeStringToDate
 	
-	from personal.intelliswitch import getDateToday, ParseTimeStringToDate
-	from personal.intelliswitch.utils import getClassName
-	from personal.intelliswitch.oh import isItemBinaryType, isItemOnOffType, isItemOpenClosedType, getOpenHABItem
-
 except:
 	LogException()
 
+try:
+	from personal.intelliswitch import script as custom_scripts
+except:
+	LogException()
 
 
 
@@ -100,7 +102,7 @@ class TimeOfDayCondition(BaseCriteria):
 		
 	def getRequiredServices(self):
 		return list(set(BaseCriteria.getRequiredServices(self) + [RequiredServiceEnum.ASTRO]))
-		
+
 		
 
 class ActiveNightCondition(TimeOfDayCondition):
@@ -391,3 +393,61 @@ class SequenceCondition(BaseCriteria):
 		return str(self._schedules)
 
 
+# ################################################
+#
+#	TimeOfDay Conditions (Day / Night)
+#
+# ################################################
+		
+class ScriptCondition(BaseCriteria):
+	__metaclass__ = ABCMeta	
+
+
+	def __init__(self):
+		BaseCriteria.__init__(self, "")
+	
+	def getName(self):
+		return getClassName(self)
+		
+	def getRequiredServices(self):
+		return list(set(BaseCriteria.getRequiredServices(self)))
+		
+		
+	def __init__(self, methodName):
+		self._methodName = methodName
+		BaseCriteria.__init__(self, "")
+	
+	
+	def EventHandler_ServiceDataUpdated(self, serviceId, data):
+		pass
+	
+	
+	def doesMethodExist(self):
+		try:
+			if self._methodName in dir(custom_scripts):
+				return True
+		except:
+			LogException()
+		return False
+
+		
+	def isActive(self):
+		try:
+			if (self.doesMethodExist()):
+				return bool( getattr(custom_scripts, self._methodName)() )
+			else:
+				logger.error("The method '{}' is not defined in the file 'personal.intelliswitch.script.py'".format(self._methodName))
+		except:
+			LogException()
+		
+		return False
+			
+'''
+def doesItemSupportOneOf(itemName, types=[]):
+	curItem = getOpenHABItem(itemName)
+	if (len(list(set(curItem.getAcceptedDataTypes()) & set(types)))>0):
+		return True
+	return False
+
+
+'''

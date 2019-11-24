@@ -21,7 +21,7 @@ try:
 	from personal.intelliswitch.rule import BaseRule, ScheduleRule, StateTriggerRule, MaintenanceRule
 	from personal.intelliswitch.rulefactory import CronRuleFactory #, ScheduleRuleFactory, TriggerRuleFactory
 	from personal.intelliswitch.service import RequiredServiceEnum
-	from personal.intelliswitch import getDateToday, ParseTimeStringToDate
+	from personal.intelliswitch.utils import getDateToday, ParseTimeStringToDate
 	
 	from personal.intelliswitch.utils import getClassName
 	from personal.intelliswitch.rule import BaseRule

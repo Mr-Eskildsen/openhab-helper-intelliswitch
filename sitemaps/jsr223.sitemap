@@ -21,5 +21,7 @@ sitemap jsr223 label="jsr223" {
         Switch item=switchTestCondition2
         Switch item=switchTestOutput
         Switch item=switchTestOutput2
+		Switch item=switchTestTrigger3
+		Switch item=switchTestOutput3
     }
 }

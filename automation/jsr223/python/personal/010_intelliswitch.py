@@ -17,7 +17,6 @@ except:
 
 configuration = None
 
-
 # Check for a valid configuration
 try:
 	from configuration import intelliswitch_configuration

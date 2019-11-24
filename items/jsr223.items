@@ -16,9 +16,11 @@ Switch switchLightSmallSpot
 Contact sensorBackyardDoor
 
 
-Switch switchTestTrigger            "Test Trigger 1"
-Switch switchTestTrigger2           "Test Trigger 2"
-Switch switchTestCondition          "Test Condition 1"
-Switch switchTestCondition2         "Test Condition 2"
-Switch switchTestOutput             "Test Output 1"
-Switch switchTestOutput2            "Test Output 2"
+Switch switchTestTrigger            "Test Trigger 1 [%s]"
+Switch switchTestTrigger2           "Test Trigger 2 [%s]"
+Switch switchTestTrigger3           "Test Trigger 3 [%s]"
+Switch switchTestCondition          "Test Condition 1 [%s]"
+Switch switchTestCondition2         "Test Condition 2 [%s]"
+Switch switchTestOutput             "Test Output 1 [%s]"
+Switch switchTestOutput2            "Test Output 2 [%s]"
+Switch switchTestOutput3			"Test Output 3 [%s]"

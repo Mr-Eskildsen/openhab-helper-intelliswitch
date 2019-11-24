@@ -1,7 +1,7 @@
 import linecache
 import sys
 import traceback
-
+from org.joda.time import DateTime, Minutes, Seconds
 from decimal import Decimal
 
 
@@ -26,3 +26,14 @@ def is_number(s):
         return True
     except ValueError:
         return False
+		
+
+def getDateToday():
+	return DateTime().withTimeAtStartOfDay()
+
+
+def ParseTimeStringToDate(date, timeString):
+	return DateTime.parse(
+			("{}-{}-{} {}").format(date.getYear(), date.getMonthOfYear(), date.getDayOfMonth(), timeString),
+			DateTimeFormat.forPattern("yyyy-MM-dd HH:mm"))
+		

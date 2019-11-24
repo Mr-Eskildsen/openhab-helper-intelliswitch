@@ -5,15 +5,20 @@ from personal.intelliswitch.logging import LogException, getLogger
 
 try:
 	import core
-
-	from personal.intelliswitch.condition import TimeInterval, ActiveNightCondition
+	from personal.intelliswitch import __Intelliswitch_Version__
+	from personal.intelliswitch.condition import ActiveNightCondition, ScriptCondition, TimeInterval
 	from personal.intelliswitch.location import Location
 	from personal.intelliswitch.manager import RuleManager
+	from personal.intelliswitch.oh import isItemBinaryType, isItemOnOffType, isItemOpenClosedType, getOpenHABItem
 	from personal.intelliswitch.output import DimmerOutput, SwitchOutput
 	from personal.intelliswitch.rule import ScheduleRule, StateTriggerRule
 except:
 	LogException()
 
+try:
+	from personal.intelliswitch import script
+except:
+	LogException()
 
 
 KEY_LOCATION = 'LOCATION'
@@ -46,12 +51,29 @@ KEY_DELAY = 'delay'
 KEY_TIMEOUT = 'timeout'
 
 KEY_TYPE = 'type'
-VALUE_ITEM = 'item'
+VALUE_ITEM_BINARY = 'binary'
+
 VALUE_CHECK = 'check'
 VALUE_ACTIVENIGHT ='ActiveNight'
 
+VALUE_SCRIPT = 'script'
 
-					
+'''
+Feature Scripts
+from personal.idealarm import custom
+
+if 'onArmingWithOpenSensors' in dir(custom):
+                custom.onArmingWithOpenSensors(self, newArmingMode)
+
+==========				
+import foo
+method_to_call = getattr(foo, 'bar')
+result = method_to_call()
+You could shorten lines 2 and 3 to:
+
+result = getattr(foo, 'bar')()
+
+'''					
 def hasConfigKey(cfg, key):
 	if key in cfg:
 		return True
@@ -96,11 +118,12 @@ class IntelliSwitchManager(object):
 		* Nothing really...
 		'''
 		
-		self.__version__ = '0.2.0'
+		self.__version__ = __Intelliswitch_Version__
 		self.__version_info__ = tuple([ int(num) for num in self.__version__.split('.')])
 		#self.log = logging.getLogger("{}.personal.intelliswitch".format(LOG_PREFIX))
 		getLogger().info(("Starting openHAB JSR223 library 'IntelliSwitch' Version '{}'").format(self.__version__))
-
+	
+		# Array of all rule managers
 		self.ruleManagers = []
 		mgrNumber = 0
 
@@ -127,7 +150,7 @@ class IntelliSwitchManager(object):
 			return False
 	
 		for i in range(len(configuration[KEY_MANAGERS])):
-			getLogger().info("Processing manager configuration '{}'".format(configuration[KEY_MANAGERS][i]))
+			getLogger().debug("Processing manager configuration '{}'".format(configuration[KEY_MANAGERS][i]))
 			mgrNumber = i+1
 			cfgRuleMgr = configuration[KEY_MANAGERS][i]
 
@@ -157,7 +180,49 @@ class IntelliSwitchManager(object):
 		arrTriggers = []
 		# Triggers
 		for i in range(len(cfgTrigger)):
-			arrTriggers.append(cfgTrigger[i])
+			curItemName = ""
+			isValid = False
+			# Is it a complex node?
+			#if hasConfigKey(curItemName, KEY_TYPE):
+			#	if getConfigValue(cfgTrigger[i], KEY_TYPE)== VALUE_ITEM_BINARY:
+			#		#TODO:: Might need to read more values here?
+			#		curItemName = getConfigValue(cfgTrigger[i], KEY_NAME)
+			#		
+			## Just the name of an openHAB item
+			#else:
+			
+			# For now Only simple configuration nodes is supported
+			try:
+				if hasConfigKey(cfgTrigger[i], KEY_TYPE):
+					if getConfigValue(cfgTrigger[i], KEY_TYPE)== VALUE_ITEM_BINARY:
+						#TODO:: Might need to read more values here?
+						curItemName = getConfigValue(cfgTrigger[i], KEY_NAME)
+					else:
+						curItemName = ""
+						getLogger().error("Trigger item '{}' (type='{}') requested in rule '{}' does only support one of the binary types (ON/OFF, OPEN/CLOSED). Item is not supported and will be ignored as trigger.".format(getConfigValue(cfgTrigger[i], KEY_NAME), getConfigValue(cfgTrigger[i], KEY_TYPE), ruleName))
+				else:
+					curItemName = str(cfgTrigger[i])
+
+				if (curItemName!= ""):
+					item_obj = getOpenHABItem(curItemName)
+					if (item_obj is not None):
+						if isItemBinaryType(curItemName):
+							isValid	= True
+						else:
+							getLogger().error("Trigger item '{}' requested in rule '{}' does not support one of the binary types (ON/OFF, OPEN/CLOSED). Item is not supported and will be ignored as trigger.".format(curItemName, ruleName))
+					else:
+						getLogger().error("Trigger item '{}' requested in rule '{}' does not exist in openHAB. Item will be ignored as trigger.".format(curItemName, ruleName))
+				else:
+					getLogger().error("Only simple triggers is supported. Trigger item '{}' is specified as a advanced trigger in rule '{}' does not exist in openHAB. Item will be ignored as trigger.".format(cfgTrigger[i], ruleName))
+
+			except:
+				isValid = False
+				LogException()
+				
+			if (isValid):
+				arrTriggers.append(curItemName)
+
+				
 		return arrTriggers
 
 		
@@ -178,14 +243,19 @@ class IntelliSwitchManager(object):
 			getLogger().info("Processing Condition '{}'".format(cfgConditions[i]))
 			#Complex node
 			if hasConfigKey(cfgConditions[i], KEY_TYPE):
-				if getConfigValue(cfgConditions[i], KEY_TYPE)== VALUE_ITEM:
+				if getConfigValue(cfgConditions[i], KEY_TYPE)== VALUE_ITEM_BINARY:
 					#TODO:: Might need to read more values here?
 					curItem = getConfigValue(cfgConditions[i], KEY_NAME)
 					
 				elif getConfigValue(cfgConditions[i], KEY_TYPE)== VALUE_CHECK:
 					if getConfigValue(cfgConditions[i], KEY_NAME)==VALUE_ACTIVENIGHT:
-						getLogger().info("Creating 'ActiveNight Condition")
+						getLogger().debug("Creating 'ActiveNight Condition")
 						curItem = ActiveNightCondition()
+				elif getConfigValue(cfgConditions[i], KEY_TYPE)== VALUE_SCRIPT:
+					getLogger().debug("Creating 'Script Condition")
+					curItem = ScriptCondition(getConfigValue(cfgConditions[i], KEY_NAME))
+
+
 			# Just the name of an openHAB item
 			else:
 				curItem = cfgConditions[i]
@@ -197,7 +267,7 @@ class IntelliSwitchManager(object):
 			else:	
 				arrConditions.append(curItem)
 		
-			getLogger().info("Successfully processed Condition '{}'".format(cfgConditions[i]))
+			getLogger().debug("Successfully processed Condition '{}'".format(cfgConditions[i]))
 		return arrConditions
 		
 		
@@ -209,7 +279,7 @@ class IntelliSwitchManager(object):
 			curItem = None
 			#Complex node
 			if hasConfigKey(cfgOutputs[i], KEY_TYPE):
-				if getConfigValue(cfgOutputs[i], KEY_TYPE)== VALUE_ITEM:
+				if getConfigValue(cfgOutputs[i], KEY_TYPE)== VALUE_ITEM_BINARY:
 				
 					#TODO:: Might Need to read more values here?
 					itemName = getConfigValue(cfgOutputs[i], KEY_NAME)
@@ -260,17 +330,6 @@ class IntelliSwitchManager(object):
 		arrOutputs = self.processOutputs(ruleName, cfgOutputs)
 		getLogger().debug("Loaded config for '{}' Triggers='{}', Conditions='{}', Outputs='{}'".format(ruleName, arrTriggers, arrConditions, arrOutputs))
 		return StateTriggerRule(ruleName, arrTriggers, arrOutputs, arrConditions )
-		#KEY_DELAY = 'delay'
-		#KEY_TIMEOUT = 'timeout'
-		
-		#StateTriggerRule
-		#return None
-		#arr TimeInterval		
-		##getRequiredConfigValue(KEY_DESCRIPTION)
-		#return ScheduleRule(getRequiredConfigValue(KEY_NAME), 
-		#			[TimeInterval("16:10", "16:50"), TimeInterval("17:00", "17:40"), TimeInterval("18:10", "18:50"), TimeInterval("19:10", "19:50"), TimeInterval("20:10", "20:50"), TimeInterval("21:10", "21:50"), TimeInterval("22:10", "22:50"), TimeInterval("23:10", "23:50"), TimeInterval("0:10", "0:50") ], 
-		#			["switchLightLivingroomTest1"], 
-		#			["switchLightScheduleTest", ActiveNightCondition()])
 
 
 	def createScheduleRule(self, cfgRule):
@@ -283,6 +342,8 @@ class IntelliSwitchManager(object):
 		arrSchedules = self.processSchedules(ruleName, cfgSchedule)
 		arrConditions = self.processConditions(ruleName, cfgConditions)
 		arrOutputs = self.processOutputs(ruleName, cfgOutputs)
+
+		return ScheduleRule(ruleName, arrSchedules, arrOutputs, arrConditions )
 		
 		'''
 		# Schedules
@@ -297,7 +358,7 @@ class IntelliSwitchManager(object):
 			getLogger().info("Processing Condition '{}'".format(cfgConditions[i]))
 			#Complex node
 			if hasConfigKey(cfgConditions[i], KEY_TYPE):
-				if getConfigValue(cfgConditions[i], KEY_TYPE)== VALUE_ITEM:
+				if getConfigValue(cfgConditions[i], KEY_TYPE)== VALUE_ITEM_BINARY:
 					#TODO:: Might need to read more values here?
 					curItem = getConfigValue(cfgConditions[i], KEY_NAME)
 					
@@ -324,7 +385,7 @@ class IntelliSwitchManager(object):
 			curItem = None
 			#Complex node
 			if hasConfigKey(cfgOutputs[i], KEY_TYPE):
-				if getConfigValue(cfgOutputs[i], KEY_TYPE)== VALUE_ITEM:
+				if getConfigValue(cfgOutputs[i], KEY_TYPE)== VALUE_ITEM_BINARY:
 					#TODO:: Might Need to read more values here?
 					curItem = getConfigValue(cfgOutputs[i], KEY_NAME)
 			# Just the name of an openHAB item
@@ -337,12 +398,6 @@ class IntelliSwitchManager(object):
 			else:	
 				arrOutputs.append(curItem)
 		'''
-		return ScheduleRule(ruleName, arrSchedules, arrOutputs, arrConditions )
-		#getRequiredConfigValue(KEY_DESCRIPTION)
-		#return ScheduleRule(getRequiredConfigValue(KEY_NAME), 
-		#			[TimeInterval("16:10", "16:50"), TimeInterval("17:00", "17:40"), TimeInterval("18:10", "18:50"), TimeInterval("19:10", "19:50"), TimeInterval("20:10", "20:50"), TimeInterval("21:10", "21:50"), TimeInterval("22:10", "22:50"), TimeInterval("23:10", "23:50"), TimeInterval("0:10", "0:50") ], 
-		#			["switchLightLivingroomTest1"], 
-		#			["switchLightScheduleTest", ActiveNightCondition()])
 
 		
 
