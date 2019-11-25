@@ -21,7 +21,10 @@ If you are creating a new installation, you can ignore what follows.
 
 **PLEASE MAKE SURE THAT YOU GO THROUGH ALL STEPS BELOW WHERE IT SAYS "BREAKING CHANGE"... DON'T SKIP ANY VERSION**
 
-    **Version 0.3.0**
+    **Version 0.3.1**
+        Fixed missing description in rules
+
+	**Version 0.3.0**
         Added script as a valid condition
 		Rework on config loader
 
@@ -50,9 +53,6 @@ If you are creating a new installation, you can ignore what follows.
 """
 import weakref # Using this to prevent problems with garbage collection
 
-from org.joda.time import DateTime
-from org.joda.time.format import DateTimeFormat
-
 from core.jsr223 import scope
 from core.log import logging, LOG_PREFIX
 
@@ -64,5 +64,5 @@ from personal.intelliswitch.logging import getLogger, LogException
 """
 	Version of Intelliswitch
 """
-__Intelliswitch_Version__ = '0.3.0'
+__Intelliswitch_Version__ = '0.4.0-dev'
 

@@ -453,7 +453,7 @@ class RuleManagerCore(BaseCore):
 
 
 class RuleManager(RuleManagerCore):
-	#__metaclass__ = ABCMeta
+	__metaclass__ = ABCMeta
 	
 	def __init__(self, _name, _description, location = None):
 		try:

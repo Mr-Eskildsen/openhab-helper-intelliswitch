@@ -56,30 +56,35 @@ class BinaryCriteria(BaseCriteria):
 	__metaclass__ = ABCMeta	
 
 	@abstractmethod
-	def __init__(self, itemName):
+	def __init__(self, itemName, activeState):
 		try:
 			BaseCriteria.__init__(self, itemName)
 			self._item = getOpenHABItem(itemName)
+			self._activeState = activeState
 		except:
 			LogException()
 
 	def isOpenHABItem(self):
 		return True
 		
-	def _isStateActive(self, activeStr):
+	def isActive(self):
 		try:
-			if (str(self._item.getState()) == activeStr):
-				return True
+			return (str(self._activeState)==str(self._item.getState()))
 		except:
 			LogException()
 		return False
 
 	@classmethod
-	def CreateInstance(cls, itemName):
+	def CreateInstance(cls, itemName, activeState = None):
 		if (isItemOnOffType(itemName)):
-			return OnOffCriteria(itemName)
+			if activeState is None:
+				activeState = OnOffType.ON
+			return OnOffCriteria(itemName, activeState)
+			
 		elif (isItemOpenClosedType(itemName)):
-			return OpenClosedCriteria(itemName)
+			if activeState is None:
+				activeState = OpenClosedType.OPEN
+			return OpenClosedCriteria(itemName, activeState)
 		
 		getLogger().error("BinaryCriteria could not be created for '%s', either a OnOff or a OpenClosed item is expected. The provided Item is none of those." % (itemName))
 		return None
@@ -92,32 +97,32 @@ class BinaryCriteria(BaseCriteria):
 class OnOffCriteria(BinaryCriteria):
 	__metaclass__ = ABCMeta	
 
-	def __init__(self, itemName):
+	def __init__(self, itemName, activeState = OnOffType.ON):
 		try:
-			BinaryCriteria.__init__(self, itemName)
+			BinaryCriteria.__init__(self, itemName, str(activeState))
 		except:
 			LogException()
 
-	def isActive(self):
-		try:
-			return self._isStateActive(str(OnOffType.ON))
-		except:
-			LogException()
-		return False
+#	def isActive(self):
+#		try:
+#			return self._isStateActive()
+#		except:
+#			LogException()
+#		return False
 
 		
 class OpenClosedCriteria(BinaryCriteria):
 	__metaclass__ = ABCMeta	
 
-	def __init__(self, itemName):
+	def __init__(self, itemName, activeState = OpenClosedType.OPEN):
 		try:
-			BinaryCriteria.__init__(self, itemName)
+			BinaryCriteria.__init__(self, itemName, str(activeState))
 		except:
 			LogException()
 			
-	def isActive(self):
-		try:
-			return self._isStateActive( str(OpenClosedType.OPEN) )
-		except:
-			LogException()
-		return False
+#	def isActive(self):
+#		try:
+#			return self._isStateActive( str(OpenClosedType.OPEN) )
+#		except:
+#			LogException()
+#		return False

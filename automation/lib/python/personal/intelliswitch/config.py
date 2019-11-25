@@ -7,6 +7,7 @@ try:
 	import core
 	from personal.intelliswitch import __Intelliswitch_Version__
 	from personal.intelliswitch.condition import ActiveNightCondition, ScriptCondition, TimeInterval
+	from personal.intelliswitch.criteria import BinaryCriteria
 	from personal.intelliswitch.location import Location
 	from personal.intelliswitch.manager import RuleManager
 	from personal.intelliswitch.oh import isItemBinaryType, isItemOnOffType, isItemOpenClosedType, getOpenHABItem
@@ -49,7 +50,7 @@ KEY_END = 'end'
 
 KEY_DELAY = 'delay'
 KEY_TIMEOUT = 'timeout'
-
+KEY_ACTIVE_STATE = 'activeState'
 KEY_TYPE = 'type'
 VALUE_ITEM_BINARY = 'binary'
 
@@ -89,7 +90,8 @@ def hasConfigKey(cfg, key):
 	
 #TODO:: Improved fail handling to avoid floats ints etc to fail on decode
 def getConfigValue(cfg, configKey, defaultValue = None, decode = False):	
-	if (configKey not in cfg) and (defaultValue is not None):
+	getLogger().info("'getConfigValue' key='{}' default='{}' config='{}'".format(configKey, defaultValue, cfg))
+	if (configKey not in cfg) and (defaultValue is None):
 		getLogger().error("Required config key '{}' not found in configuration".format(configKey))
 
 	elif configKey in cfg:
@@ -197,6 +199,7 @@ class IntelliSwitchManager(object):
 					if getConfigValue(cfgTrigger[i], KEY_TYPE)== VALUE_ITEM_BINARY:
 						#TODO:: Might need to read more values here?
 						curItemName = getConfigValue(cfgTrigger[i], KEY_NAME)
+						activeState = getConfigValue(cfgTrigger[i], KEY_ACTIVE_STATE, defaultValue="")
 					else:
 						curItemName = ""
 						getLogger().error("Trigger item '{}' (type='{}') requested in rule '{}' does only support one of the binary types (ON/OFF, OPEN/CLOSED). Item is not supported and will be ignored as trigger.".format(getConfigValue(cfgTrigger[i], KEY_NAME), getConfigValue(cfgTrigger[i], KEY_TYPE), ruleName))
@@ -245,8 +248,15 @@ class IntelliSwitchManager(object):
 			if hasConfigKey(cfgConditions[i], KEY_TYPE):
 				if getConfigValue(cfgConditions[i], KEY_TYPE)== VALUE_ITEM_BINARY:
 					#TODO:: Might need to read more values here?
-					curItem = getConfigValue(cfgConditions[i], KEY_NAME)
-					
+					itemName = getConfigValue(cfgConditions[i], KEY_NAME)
+					if hasConfigKey(cfgConditions[i], KEY_ACTIVE_STATE):
+						getLogger().debug("Creating BinaryCriteria from config='{}'".format(cfgConditions[i]))
+						activeState = getConfigValue(cfgConditions[i], KEY_ACTIVE_STATE)
+						getLogger().debug("Creating BinaryCriteria itemName='{}' activeState='{}'".format(itemName, activeState))
+						curItem = BinaryCriteria.CreateInstance(itemName, activeState = activeState)
+					else:
+						curItem = itemName
+
 				elif getConfigValue(cfgConditions[i], KEY_TYPE)== VALUE_CHECK:
 					if getConfigValue(cfgConditions[i], KEY_NAME)==VALUE_ACTIVENIGHT:
 						getLogger().debug("Creating 'ActiveNight Condition")
@@ -295,11 +305,11 @@ class IntelliSwitchManager(object):
 						if (hasConfigKey(cfgOutputs[i], KEY_ACTIVATED_VALUE) and hasConfigKey(cfgOutputs[i], KEY_DEACTIVATED_VALUE)):
 							stateActivated = getConfigValue(cfgOutputs[i], KEY_ACTIVATED_VALUE, defaultValue=100, decode=False)
 							stateDeactivated = getConfigValue(cfgOutputs[i], KEY_DEACTIVATED_VALUE, defaultValue=0, decode=False)
-							getLogger().info("'SwitchOutput' -> itemName='{}', delay='{}', timeout='{}', stateActivated='{}', stateDeactivated='{}'".format(itemName, delay, timeout, stateActivated, stateDeactivated))
+							getLogger().debug("'SwitchOutput' -> itemName='{}', delay='{}', timeout='{}', stateActivated='{}', stateDeactivated='{}'".format(itemName, delay, timeout, stateActivated, stateDeactivated))
 							curItem = DimmerOutput(itemName, stateActivated, stateDeactivated, delay, timeout)
 						#At least a Timeout key should be specified
 						else:
-							getLogger().info("'SwitchOutput' -> itemName='{}', delay='{}', timeout='{}'".format(itemName, delay, timeout))
+							getLogger().debug("'SwitchOutput' -> itemName='{}', delay='{}', timeout='{}'".format(itemName, delay, timeout))
 							curItem = SwitchOutput(itemName, delay, timeout)
 					
 					# just a plain switch item
@@ -310,7 +320,7 @@ class IntelliSwitchManager(object):
 				curItem = cfgOutputs[i]
 
 			if curItem is None:
-				getLogger().error("Invalid Output '{}'".format(arrOutputs[i]))
+				getLogger().error("Invalid Output '{}'".format(cfgOutputs[i]))
 				#return
 			else:	
 				arrOutputs.append(curItem)
@@ -324,12 +334,13 @@ class IntelliSwitchManager(object):
 		cfgConditions = cfgRule[KEY_CONDITIONS]
 		cfgOutputs = cfgRule[KEY_OUTPUTS]
 		ruleName = getConfigValue(cfgRule, KEY_NAME)
-
+		ruleDescription = getConfigValue(cfgRule, KEY_DESCRIPTION)
+		
 		arrTriggers = self.processTriggers(ruleName, cfgTriggers)
 		arrConditions = self.processConditions(ruleName, cfgConditions)
 		arrOutputs = self.processOutputs(ruleName, cfgOutputs)
 		getLogger().debug("Loaded config for '{}' Triggers='{}', Conditions='{}', Outputs='{}'".format(ruleName, arrTriggers, arrConditions, arrOutputs))
-		return StateTriggerRule(ruleName, arrTriggers, arrOutputs, arrConditions )
+		return StateTriggerRule(ruleName, arrTriggers, arrOutputs, arrConditions, description = ruleDescription)
 
 
 	def createScheduleRule(self, cfgRule):
@@ -338,12 +349,13 @@ class IntelliSwitchManager(object):
 		cfgOutputs = cfgRule[KEY_OUTPUTS]
 		
 		ruleName = getConfigValue(cfgRule, KEY_NAME)
-		
+		ruleDescription = getConfigValue(cfgRule, KEY_DESCRIPTION)
+				
 		arrSchedules = self.processSchedules(ruleName, cfgSchedule)
 		arrConditions = self.processConditions(ruleName, cfgConditions)
 		arrOutputs = self.processOutputs(ruleName, cfgOutputs)
 
-		return ScheduleRule(ruleName, arrSchedules, arrOutputs, arrConditions )
+		return ScheduleRule(ruleName, arrSchedules, arrOutputs, arrConditions, description = ruleDescription )
 		
 		'''
 		# Schedules
